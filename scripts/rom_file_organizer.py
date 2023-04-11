@@ -2,7 +2,7 @@ import os
 import re
 
 
-def generate_m3u_playlist_for_multi_disc_games(folder_path):
+def generate_m3u_playlist_from_CHD(folder_path):
     multi_disc_games = {}
     total_files = 0
     error_log = []
@@ -70,7 +70,7 @@ def generate_m3u_playlist_for_multi_disc_games(folder_path):
         return True, "Organization of PS1 Roms is complete."
 
 
-def organize_ps1_roms_in_a_single_folder(folder_path):
+def move_CHD_to_root_folder_delete_m3u_files(folder_path):
     error_log = []
 
     subdirectories = [
