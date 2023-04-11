@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from scripts import rom_file_organizer, sd_card_formatter
+import platform
 
 
 def organize_files(operation):
@@ -26,6 +27,7 @@ def browse_directory():
         path_label.config(text=folder_path)
         organize_button1.config(state=tk.NORMAL)
         organize_button2.config(state=tk.NORMAL)
+        setup_sd_card_button.config(state=tk.NORMAL)
 
 
 def on_click(app_name):
@@ -34,15 +36,12 @@ def on_click(app_name):
 
 
 def update_right_frame(app_name):
-    global chd_frame, sd_card_frame
     if app_name == "Organize CHD Files":
         chd_frame.grid(column=1, row=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
         sd_card_frame.grid_remove()
     elif app_name == "Setup SD Card for Garlic OS":
-        sd_card_frame.grid(column=1, row=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
-    else:
         chd_frame.grid_remove()
-        sd_card_frame.grid_remove()
+        sd_card_frame.grid(column=1, row=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
 
 
 def setup_sd_card():
@@ -55,6 +54,44 @@ def setup_sd_card():
         messagebox.showerror("Error", message)
 
 
+def calculate_pixel_width(lst):
+    padding = 2
+    # Determine the default font on the current OS
+    os_name = platform.system()
+    if os_name == "Windows":
+        font_name = "Segoe UI"
+        font_size = 9  # Default font size on Windows
+    elif os_name == "Darwin":
+        font_name = "Helvetica"
+        font_size = 13  # Default font size on macOS
+    else:
+        font_name = "DejaVu Sans"  # Assuming a Linux-like OS
+        font_size = 10  # Default font size on Linux
+
+    # Create a Tkinter window and a Text widget to set the default font
+    root = tk.Tk()
+    root.withdraw()
+    text = tk.Text(root, font=(font_name, font_size))
+
+    # Find the longest string in the list
+    longest_str = max(lst, key=len)
+
+    # Set the contents of the Text widget to the longest string
+    text.insert("1.0", longest_str)
+
+    # Resize the Text widget to fit its contents
+    text.update_idletasks()
+    text_width = text.winfo_width()
+    text_height = text.winfo_height()
+    text.config(width=text_width, height=text_height)
+
+    # Calculate the pixel width of the Text widget
+    pixel_width = text_width - 4  # Subtract 4 pixels for the widget border
+
+    # Return the pixel width as an integer
+    return int(pixel_width) + padding
+
+
 window = tk.Tk()
 window.title("RG35XX Roms Manager")
 # window.geometry("500x100")
@@ -62,8 +99,7 @@ window.minsize(500, 100)
 window.maxsize(500, 100)
 window.iconphoto(True, tk.PhotoImage(file="./media/icon.gif"))
 
-
-left_frame = ttk.Frame(window, relief="groove", borderwidth=1)
+left_frame = ttk.Frame(window, relief="groove", borderwidth=2)
 left_frame.grid(column=0, row=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
 left_frame_title = ttk.Label(left_frame, text="Applications")
@@ -71,8 +107,7 @@ left_frame_title.grid(column=0, row=0)
 
 application_names = ["Organize CHD Files", "Setup SD Card for Garlic OS", "Application 3"]
 
-
-apps_listbox = tk.Listbox(left_frame, height=4, width=20)
+apps_listbox = tk.Listbox(left_frame, height=len(application_names), width=calculate_pixel_width(application_names))
 for i, application_name in enumerate(application_names):
     apps_listbox.insert(i, application_name)
 apps_listbox.bind(
@@ -112,7 +147,7 @@ organize_button2 = ttk.Button(
 )
 organize_button2.grid(column=1, row=2, sticky=(tk.W, tk.E))
 
-window.columnconfigure(0, weight=0, minsize=100)  # Set minsize=200 for the left frame
+window.columnconfigure(0, weight=0, minsize=150)  # Set minsize=200 for the left frame
 window.columnconfigure(1, weight=1)
 window.rowconfigure(0, weight=1)
 chd_frame.columnconfigure(1, weight=1)
@@ -137,6 +172,10 @@ setup_sd_card_button.grid(column=0, row=2, sticky=(tk.W, tk.E))
 
 sd_card_frame.grid_remove()  # Hide frame by default
 
-chd_frame.grid_remove()  # Hide frame by default
+chd_frame.grid_remove()  # Hide frame
+
+# Uncomment the line below to start the application with the first app selected by default
+apps_listbox.selection_set(0)
+on_click(application_names[0])
 
 window.mainloop()
