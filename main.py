@@ -46,6 +46,7 @@ window.title("RG35XX Roms Manager")
 # window.geometry("500x100")
 window.minsize(500, 100)
 window.maxsize(500, 100)
+window.iconphoto(True, tk.PhotoImage(file="./media/icon.gif"))
 
 
 left_frame = ttk.Frame(window, relief="groove", borderwidth=1)
