@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from scripts import rom_file_organizer
+from scripts import rom_file_organizer, sd_card_formatter
 
 
 def organize_files(operation):
@@ -34,11 +34,25 @@ def on_click(app_name):
 
 
 def update_right_frame(app_name):
-    global chd_frame
+    global chd_frame, sd_card_frame
     if app_name == "Organize CHD Files":
         chd_frame.grid(column=1, row=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
+        sd_card_frame.grid_remove()
+    elif app_name == "Setup SD Card for Garlic OS":
+        sd_card_frame.grid(column=1, row=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
     else:
         chd_frame.grid_remove()
+        sd_card_frame.grid_remove()
+
+
+def setup_sd_card():
+    folder_path = path_label.cget("text")
+    success, message = sd_card_formatter.create_garlic_os_folders(folder_path)
+
+    if success:
+        messagebox.showinfo("Completed", message)
+    else:
+        messagebox.showerror("Error", message)
 
 
 window = tk.Tk()
@@ -55,11 +69,12 @@ left_frame.grid(column=0, row=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 left_frame_title = ttk.Label(left_frame, text="Applications")
 left_frame_title.grid(column=0, row=0)
 
-app_names = ["Organize CHD Files", "Application 2", "Application 3"]
+application_names = ["Organize CHD Files", "Setup SD Card for Garlic OS", "Application 3"]
+
 
 apps_listbox = tk.Listbox(left_frame, height=4, width=20)
-for i, app_name in enumerate(app_names):
-    apps_listbox.insert(i, app_name)
+for i, application_name in enumerate(application_names):
+    apps_listbox.insert(i, application_name)
 apps_listbox.bind(
     "<<ListboxSelect>>",
     lambda event: on_click(apps_listbox.get(apps_listbox.curselection())),
@@ -102,6 +117,25 @@ window.columnconfigure(1, weight=1)
 window.rowconfigure(0, weight=1)
 chd_frame.columnconfigure(1, weight=1)
 chd_frame.rowconfigure(1, weight=1)
+
+sd_card_frame = ttk.Frame(right_frame)
+sd_card_frame.columnconfigure(1, weight=1)
+
+browse_button_sd_card = ttk.Button(sd_card_frame, text="Browse", command=browse_directory)
+browse_button_sd_card.grid(column=0, row=1, sticky=(tk.W, tk.E))
+
+path_label_sd_card = ttk.Label(sd_card_frame, text="")
+path_label_sd_card.grid(column=1, row=1, sticky=(tk.W, tk.E))
+
+setup_sd_card_button = ttk.Button(
+    sd_card_frame,
+    text="Create Folders for Garlic OS",
+    state=tk.DISABLED,
+    command=setup_sd_card,
+)
+setup_sd_card_button.grid(column=0, row=2, sticky=(tk.W, tk.E))
+
+sd_card_frame.grid_remove()  # Hide frame by default
 
 chd_frame.grid_remove()  # Hide frame by default
 
