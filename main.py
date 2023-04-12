@@ -25,9 +25,12 @@ def browse_directory():
     folder_path = filedialog.askdirectory()
     if folder_path:
         path_label.config(text=folder_path)
+        path_label_sd_card.config(text=folder_path)  # Add this line to update the path_label_sd_card text
         organize_button1.config(state=tk.NORMAL)
         organize_button2.config(state=tk.NORMAL)
-        setup_sd_card_button.config(state=tk.NORMAL)
+        setup_sd_card_button_garlic.config(state=tk.NORMAL)
+        setup_sd_card_button_batocera.config(state=tk.NORMAL)
+
 
 
 def on_click(app_name):
@@ -39,14 +42,17 @@ def update_right_frame(app_name):
     if app_name == "Organize CHD Files":
         chd_frame.grid(column=1, row=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
         sd_card_frame.grid_remove()
-    elif app_name == "Setup SD Card for Garlic OS":
+    elif app_name == "Setup ROM SD Card":
         chd_frame.grid_remove()
         sd_card_frame.grid(column=1, row=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
+    else:
+        chd_frame.grid_remove()
+        sd_card_frame.grid_remove()
 
 
-def setup_sd_card():
+def setup_sd_card(os):
     folder_path = path_label.cget("text")
-    success, message = sd_card_formatter.create_garlic_os_folders(folder_path)
+    success, message = sd_card_formatter.create_rom_folders(folder_path, os)
 
     if success:
         messagebox.showinfo("Completed", message)
@@ -55,7 +61,7 @@ def setup_sd_card():
 
 
 def calculate_pixel_width(lst):
-    padding = 2
+    padding = 0
     # Determine the default font on the current OS
     os_name = platform.system()
     if os_name == "Windows":
@@ -105,7 +111,7 @@ left_frame.grid(column=0, row=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 left_frame_title = ttk.Label(left_frame, text="Applications")
 left_frame_title.grid(column=0, row=0)
 
-application_names = ["Organize CHD Files", "Setup SD Card for Garlic OS", "Application 3"]
+application_names = ["Organize CHD Files", "Setup ROM SD Card", "Application 3"]
 
 apps_listbox = tk.Listbox(left_frame, height=len(application_names), width=calculate_pixel_width(application_names))
 for i, application_name in enumerate(application_names):
@@ -159,16 +165,24 @@ sd_card_frame.columnconfigure(1, weight=1)
 browse_button_sd_card = ttk.Button(sd_card_frame, text="Browse", command=browse_directory)
 browse_button_sd_card.grid(column=0, row=1, sticky=(tk.W, tk.E))
 
-path_label_sd_card = ttk.Label(sd_card_frame, text="")
-path_label_sd_card.grid(column=1, row=1, sticky=(tk.W, tk.E))
 
-setup_sd_card_button = ttk.Button(
+path_label_sd_card = ttk.Label(sd_card_frame, text="")
+path_label_sd_card.grid(column=1, row=1, columnspan=2, sticky=(tk.W, tk.E))  # Add columnspan=2
+
+setup_sd_card_button_garlic = ttk.Button(
     sd_card_frame,
     text="Create Folders for Garlic OS",
     state=tk.DISABLED,
-    command=setup_sd_card,
+    command=lambda: setup_sd_card("Garlic")
 )
-setup_sd_card_button.grid(column=0, row=2, sticky=(tk.W, tk.E))
+setup_sd_card_button_garlic.grid(column=0, row=2, sticky=(tk.W, tk.E))
+setup_sd_card_button_batocera = ttk.Button(
+    sd_card_frame,
+    text="Create Folders for Batocera",
+    state=tk.DISABLED,
+    command=lambda: setup_sd_card("Batocera")
+)
+setup_sd_card_button_batocera.grid(column=1, row=2, sticky=(tk.W, tk.E))  # Change column from 2 to 1
 
 sd_card_frame.grid_remove()  # Hide frame by default
 
