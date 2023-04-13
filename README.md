@@ -15,7 +15,7 @@ It allows you to group multi-disc games into separate folders and
 generate M3U playlist files for compatibility with various 
 emulators.
 
-![Organize CHD Files](./media/Organize CHD Files.png)
+![Organize CHD Files](./media/organize_chd_files.png)
 
 ### Functionality
 
@@ -39,7 +39,7 @@ indicating the result of the reverting process.
 This section helps you create the folder structure for your SD card,
 currently only supporting Garlic OS and Batocera.
 
-![RG35XX Roms Manager Interface](./media/Setup ROM SD Card.png)
+![RG35XX Roms Manager Interface](./media/setup_rom_sd_card.png)
 
 ### Functionality
 
