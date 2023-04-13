@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from scripts import rom_file_organizer, sd_card_formatter
 import platform
+import sys
+import os
 
 
 def organize_files(operation):
@@ -103,7 +105,16 @@ window.title("RG35XX Roms Manager")
 # window.geometry("500x100")
 window.minsize(500, 100)
 window.maxsize(500, 100)
-window.iconphoto(True, tk.PhotoImage(file="./media/icon.gif"))
+try:
+    # PyInstaller creates a temp folder and stores the path in _MEIPASS
+    base_path = sys._MEIPASS
+except Exception:
+    base_path = os.path.abspath(".")
+
+icon_path = os.path.join(base_path, "media", "icon.gif")
+
+window.iconphoto(True, tk.PhotoImage(file=icon_path))
+
 
 left_frame = ttk.Frame(window, relief="groove", borderwidth=2)
 left_frame.grid(column=0, row=0, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -111,7 +122,7 @@ left_frame.grid(column=0, row=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 left_frame_title = ttk.Label(left_frame, text="Applications")
 left_frame_title.grid(column=0, row=0)
 
-application_names = ["Organize CHD Files", "Setup ROM SD Card", "Application 3"]
+application_names = ["Organize CHD Files", "Setup ROM SD Card"] # , "Application 3"]
 
 apps_listbox = tk.Listbox(left_frame, height=len(application_names), width=calculate_pixel_width(application_names))
 for i, application_name in enumerate(application_names):
