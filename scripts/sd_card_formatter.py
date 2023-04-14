@@ -90,6 +90,44 @@ os_folders = {
 batocera_subdirs = ["batocera", "userdata", "roms"]
 
 
+def get_file_inventory(folder):
+    """
+    Returns the inventory of files and their sizes in a folder.
+
+    Args:
+        folder (str): The path to the folder.
+
+    Returns:
+        dict: A dictionary with file names as keys and file sizes as values.
+    """
+    inventory = {}
+    for item_name in os.listdir(folder):
+        item_path = os.path.join(folder, item_name)
+        if os.path.isfile(item_path):
+            inventory[item_name] = os.path.getsize(item_path)
+
+    return inventory
+
+
+def verify_moved_files(inventory, target_folder):
+    """
+    Verifies if the moved files are in the target folder based on the inventory.
+
+    Args:
+        inventory (dict): A dictionary with file names as keys and file sizes as values.
+        target_folder (str): The path to the target folder.
+
+    Returns:
+        bool: True if all files have been moved, False otherwise.
+    """
+    for file_name, file_size in inventory.items():
+        target_file_path = os.path.join(target_folder, file_name)
+        if not os.path.exists(target_file_path) or os.path.getsize(target_file_path) != file_size:
+            return False
+
+    return True
+
+
 def undo_rom_folder_creation(root_folder, os_name):
     """
     Removes the folder tree for all consoles in the specified root folder based on the given OS.
@@ -108,13 +146,21 @@ def undo_rom_folder_creation(root_folder, os_name):
         return False, f"Invalid OS name: {os_name}"
 
     try:
-        for console_name, folder_name in folders_dict.items():
-            console_folder_path = os.path.join(root_folder, folder_name)
-            if os.path.exists(console_folder_path):
-                print(f"Removing folder: {console_folder_path}")
-                shutil.rmtree(console_folder_path)
+        if os_name == "Garlic":
+            for console_name, folder_name in folders_dict.items():
+                console_folder_path = os.path.join(root_folder, folder_name)
+                if os.path.exists(console_folder_path):
+                    print(f"Removing folder: {console_folder_path}")
+                    shutil.rmtree(console_folder_path)
+                else:
+                    print(f"Folder not found: {console_folder_path}")
+        elif os_name == "Batocera":
+            batocera_folder = os.path.join(root_folder, "batocera")
+            if os.path.exists(batocera_folder):
+                print(f"Removing folder: {batocera_folder}")
+                shutil.rmtree(batocera_folder)
             else:
-                print(f"Folder not found: {console_folder_path}")
+                print(f"Folder not found: {batocera_folder}")
 
         return True, f"Folders for all consoles in {root_folder} have been removed."
     except Exception as e:
@@ -204,6 +250,7 @@ def convert_rom_folders(input_dir, target_os):
     # Step 4: Move files from the current OS to their new directories
     source_folders = os_folders[current_os]
     target_folders = os_folders[target_os]
+    all_files_moved = True  # Initialize the variable to track if all files were moved
 
     for console_name, source_folder_name in source_folders.items():
         source_folder = os.path.join(input_dir, source_folder_name)
@@ -215,34 +262,53 @@ def convert_rom_folders(input_dir, target_os):
         if target_folder_name:
             parent_input_dir = os.path.dirname(os.path.dirname(input_dir))
             target_folder = os.path.join(parent_input_dir, target_folder_name)
-            for file_name in os.listdir(source_folder):
-                file_path = os.path.join(source_folder, file_name)
-                if os.path.isfile(file_path):
-                    try:
-                        shutil.move(file_path, os.path.join(target_folder, file_name))
-                    except FileNotFoundError:
-                        print(f"File not found: {file_path}")
+            source_inventory = get_file_inventory(source_folder)
+
+            for item_name in os.listdir(source_folder):
+                item_path = os.path.join(source_folder, item_name)
+                try:
+                    if os.path.isfile(item_path):
+                        shutil.move(item_path, os.path.join(target_folder, item_name))
+                    elif os.path.isdir(item_path):
+                        target_subdir = os.path.join(target_folder, item_name)
+                        shutil.move(item_path, target_subdir)
+                except FileNotFoundError:
+                    print(f"File or directory not found: {item_path}")
+
+            # Verify the files have been moved
+            if not verify_moved_files(source_inventory, target_folder):
+                print("Error: Some files were not moved successfully.")
+                all_files_moved = False  # Update the variable if some files were not moved
+                break
         else:
-            # If the target OS doesn't have a specific console folder, copy the entire folder to the new directory
+            # If the target OS doesn't have a specific console folder, move the entire folder to the new directory
             parent_input_dir = os.path.dirname(os.path.dirname(input_dir))
             target_folder = os.path.join(parent_input_dir, source_folder_name)
+            source_inventory = get_file_inventory(source_folder)
+
             if not os.path.exists(target_folder):
-                shutil.copytree(source_folder, target_folder)
+                shutil.move(source_folder, target_folder)
+
+            # Verify the files have been moved
+            if not verify_moved_files(source_inventory, target_folder):
+                print("Error: Some files were not moved successfully.")
+                all_files_moved = False  # Update the variable if some files were not moved
+                break
 
     # Step 5: Remove the folders from the previous OS
-    success, message = undo_rom_folder_creation(input_dir, current_os)
+    success, message = undo_rom_folder_creation(original_input_dir, current_os)
     if not success:
         raise RuntimeError(message)
-
-
+    else:
+        print(f"Successfully converted {original_input_dir} to {target_os}")
 
 
 if __name__ == "__main__":
-    input_dir = "H:\Games\Convert SD Card Content\\"
-    target_os = "Garlic"
+    in_dir = "H:\Games\conver SD Card Smol"
+    t_os = "Batocera"
 
     try:
-        convert_rom_folders(input_dir, target_os)
-        print(f"Successfully converted {input_dir} to {target_os}")
+        convert_rom_folders(in_dir, t_os)
+        print(f"Successfully converted {in_dir} to {t_os}")
     except Exception as e:
         print(f"Error converting folders: {str(e)}")
