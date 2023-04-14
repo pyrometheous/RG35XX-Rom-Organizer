@@ -304,8 +304,8 @@ def convert_rom_folders(input_dir, target_os):
 
 
 if __name__ == "__main__":
-    in_dir = "H:\Games\conver SD Card Smol"
-    t_os = "Batocera"
+    in_dir = "D:\\"
+    t_os = "Garlic"
 
     try:
         convert_rom_folders(in_dir, t_os)
