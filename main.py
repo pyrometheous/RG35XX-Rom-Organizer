@@ -6,7 +6,7 @@ import platform
 import sys
 import os
 
-
+from scripts.sd_card_formatter import format_drive, get_external_drives
 
 
 def main():
@@ -72,15 +72,25 @@ def main():
         if app_name == application_name_01: # Organize CHD Files
             chd_frame.grid(column=1, row=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
             sd_card_frame.grid_remove()
+            sd_card_frame
         elif app_name == application_name_02: # Setup ROM SD Card
             chd_frame.grid_remove()
             sd_card_frame.grid(column=1, row=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
         elif app_name == application_name_03: # Format SD Card
+            drive_format_frame.grid(column=1, row=1, rowspan=2, sticky=(tk.W, tk.E, tk.N, tk.S))
             chd_frame.grid_remove()
             sd_card_frame.grid_remove()
         else:
             chd_frame.grid_remove()
             sd_card_frame.grid_remove()
+
+    def update_drive_list(drive_combobox):
+        drives = get_external_drives()
+        drive_combobox["values"] = drives
+        if drives:
+            drive_combobox.set(drives[0])
+        else:
+            drive_combobox.set("")
 
     def setup_sd_card(operating_system):
         folder_path = chd_path_label.cget("text")
@@ -159,6 +169,13 @@ def main():
         title.grid(column=0, row=0, columnspan=2, sticky=(tk.W, tk.E))
         return listbox, r_frame, title
 
+    def handle_format_drive(drive, file_system, parent):
+        success, stdout, stderr = format_drive(drive, file_system)
+        if success:
+            messagebox.showinfo("Success", f"Drive {drive} formatted successfully.", parent=parent)
+        else:
+            messagebox.showerror("Error", f"Error formatting drive {drive}:\n{stderr}", parent=parent)
+
     def enable_buttons_after_browsing(app_path_label, *buttons):
         def inner_enable_buttons_after_browsing():
             folder_path = browse_directory(buttons[0], app_path_label)
@@ -166,7 +183,6 @@ def main():
                 button.config(state=tk.NORMAL)
 
         return inner_enable_buttons_after_browsing
-
 
     def create_organize_chd_files_frame():
         frame = ttk.Frame(right_frame)
@@ -249,6 +265,69 @@ def main():
 
         return frame, path_label
 
+    def on_format_drive(drive_var, file_system_var):
+        drive = drive_var.get()
+        file_system = file_system_var.get()
+
+        if not drive or not file_system:
+            messagebox.showerror("Error", "Please select a drive and file system")
+            return
+
+        success, _, error = format_drive(drive, file_system)
+        if success:
+            messagebox.showinfo("Success", f"Drive {drive} formatted successfully")
+        else:
+            messagebox.showerror("Error", f"Error formatting drive {drive}: {error}")
+
+    def create_format_sd_card_frame():
+        frame = ttk.Frame(right_frame)
+
+        # Create the drive selection dropdown
+        drives = get_external_drives()
+        drive_var = tk.StringVar()
+        drive_combobox = ttk.Combobox(frame, textvariable=drive_var)
+        drive_combobox["values"] = drives
+        if drives:
+            drive_combobox.set(drives[0])
+        drive_combobox.grid(column=0, row=1, sticky=(tk.W, tk.E))
+
+        # Create refresh button to update the drive list
+        refresh_button = ttk.Button(
+            frame,
+            text="Refresh",
+            command=lambda: update_drive_list(drive_combobox)
+        )
+        refresh_button.grid(column=1, row=1, sticky=(tk.W, tk.E))
+
+        # Create the format button
+        format_button = ttk.Button(
+            frame,
+            text="Format Drive",
+            command=lambda: on_format_drive(drive_var, file_system_var)
+        )
+        format_button.grid(column=0, row=2, columnspan=2, sticky=(tk.W, tk.E))
+
+        # Create the file system selection dropdown
+        file_systems = ["exFAT", "FAT32"]
+        file_system_var = tk.StringVar(value=file_systems[0])
+        file_system_combobox = ttk.Combobox(frame, textvariable=file_system_var)
+        file_system_combobox["values"] = file_systems
+        file_system_combobox.grid(column=0, row=2, sticky=(tk.W, tk.E))
+
+        # Create the format drive button
+        format_button = ttk.Button(
+            frame,
+            text="Format Drive",
+            command=lambda: handle_format_drive(
+                drive_var.get(),
+                file_system_var.get(),
+                frame
+            )
+        )
+        format_button.grid(column=1, row=2, sticky=(tk.W, tk.E))
+
+        return frame
+
     def close_app():
         window.destroy()
         sys.exit(0)
@@ -289,13 +368,17 @@ def main():
     chd_frame, chd_path_label = create_organize_chd_files_frame()
 
     # Create ROM SD Card Setup Frame
-    sd_card_frame, setup_sd_card_folders_path_label  = create_setup_roms_sd_card_frame()
+    sd_card_frame, setup_sd_card_folders_path_label = create_setup_roms_sd_card_frame()
+
+    # Create Format SD Card Frame
+    drive_format_frame = create_format_sd_card_frame()
+
+    drive_format_frame.grid_remove() # Hide frame by default
 
     sd_card_frame.grid_remove()  # Hide frame by default
 
     chd_frame.grid_remove()  # Hide frame
 
-    # Uncomment the line below to start the application with the first app selected by default
     apps_listbox.selection_set(0)
     on_click(application_names[0])
 

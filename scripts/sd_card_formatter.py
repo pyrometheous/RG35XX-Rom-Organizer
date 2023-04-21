@@ -1,5 +1,10 @@
 import os
 import shutil
+import sys
+import subprocess
+import psutil
+import tempfile
+import ctypes
 
 # Dictionary of console names and folder names for Garlic OS
 garlic_os_folders = {
@@ -303,12 +308,85 @@ def convert_rom_folders(input_dir, target_os):
         print(f"Successfully converted {original_input_dir} to {target_os}")
 
 
-if __name__ == "__main__":
-    in_dir = "D:\\"
-    t_os = "Garlic"
+def get_external_drives():
+    drives = []
 
+    for part in psutil.disk_partitions(all=False):
+        if sys.platform.startswith("win32"):
+            if 'removable' in part.opts:
+                drives.append(part.device)
+        elif sys.platform.startswith("linux") or sys.platform.startswith("darwin"):
+            if part.mountpoint.startswith("/media") or part.mountpoint.startswith("/Volumes"):
+                drives.append(part.device)
+
+    return drives
+
+
+def check_admin_rights():
+    """
+    Checks if the script has administrative rights.
+    :return: True if admin rights, otherwise False
+    """
     try:
-        convert_rom_folders(in_dir, t_os)
-        print(f"Successfully converted {in_dir} to {t_os}")
-    except Exception as e:
-        print(f"Error converting folders: {str(e)}")
+        return os.getuid() == 0
+    except AttributeError:
+        return ctypes.windll.shell32.IsUserAnAdmin() != 0
+
+
+def format_drive(drive: str, file_system: str):
+    if sys.platform.startswith("win"):
+        # Use PowerShell for exFAT formatting and diskpart for FAT32 formatting on Windows
+        if file_system == "FAT32":
+            # Create a temporary diskpart script file
+            with tempfile.NamedTemporaryFile("w", delete=False, suffix=".txt") as script_file:
+                script_file.write(f"select volume {drive}\n"
+                                  "format fs=fat32 quick\n"
+                                  "exit\n")
+                script_file_path = script_file.name
+
+            # Use diskpart to format the drive
+            command = f"diskpart /s {script_file_path}"
+        else:
+            command = f"powershell.exe Clear-Disk -Number (Get-Disk -Path '\\\\.\\{drive}:').Number -RemoveData -Confirm:$false ; Format-Volume -DriveLetter {drive[0]} -FileSystem exFAT"
+
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            text=True
+        )
+    else:
+        # Use mkfs for Linux and macOS
+        file_system_flag = "fat32" if file_system == "FAT32" else "exfat"
+        command = f"sudo mkfs.{file_system_flag} {drive}"
+
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            text=True
+        )
+
+    stdout, stderr = process.communicate()
+    print(f"Return code: {process.returncode}")
+    print(f"Stdout: {stdout}")
+    print(f"Stderr: {stderr}")
+
+    if process.returncode == 0:
+        return True, stdout, stderr
+    else:
+        return False, stdout, stderr
+
+
+
+# if __name__ == "__main__":
+#     in_dir = "D:\\"
+#     t_os = "Garlic"
+#
+#     try:
+#         convert_rom_folders(in_dir, t_os)
+#         print(f"Successfully converted {in_dir} to {t_os}")
+#     except Exception as e:
+#         print(f"Error converting folders: {str(e)}")
